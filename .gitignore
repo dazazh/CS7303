@@ -11,7 +11,8 @@ data/*
 __pycache__/
 live_demo/dataset*
 *~
-
+*.pth
+*.ckpt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -6,6 +6,7 @@ import errno
 import glob
 import io
 import os
+import sys
 import random
 import shutil
 
@@ -30,6 +31,31 @@ import loss_functions
 from modeling import deeplab
 from utils import utils
 
+# 获取当前脚本的绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 获取 Depth-Anything-V2 的绝对路径（从 train.py 开始定位）
+depth_anything_path = os.path.join(current_dir, '..', '..', 'Depth-Anything-V2')
+# 将路径加入 sys.path
+sys.path.append(depth_anything_path)
+
+from depth_anything_v2.dpt import DepthAnythingV2
+
+# depth anything model setup
+DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
+
+model_configs = {
+    'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]},
+    'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
+    'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
+    'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
+}
+
+encoder = 'vitl' # or 'vits', 'vitb', 'vitg'
+
+da_model = DepthAnythingV2(**model_configs[encoder])
+da_model.load_state_dict(torch.load(f'/data2/yuhao/class/CS7303/pytorch_networks/surface_normals/checkpoints/depth_anything_v2_vitl.pth', map_location='cpu'))
+da_model = da_model.to(DEVICE).eval()
+
 ###################### Load Config File #############################
 parser = argparse.ArgumentParser(description='Run training of outlines prediction model')
 parser.add_argument('-c', '--configFile', required=True, help='Path to config yaml file', metavar='path/to/config')
@@ -37,7 +63,8 @@ args = parser.parse_args()
 
 CONFIG_FILE_PATH = args.configFile
 with open(CONFIG_FILE_PATH) as fd:
-    config_yaml = oyaml.load(fd)  # Returns an ordered dict. Used for printing
+    # print(colored('Loading config file: {}'.format(CONFIG_FILE_PATH), 'green'))
+    config_yaml = oyaml.load(fd, Loader=oyaml.SafeLoader)  # Returns an ordered dict. Used for printing
 
 config = AttrDict(config_yaml)
 # print(colored('Config being used for training:\n{}\n\n'.format(oyaml.dump(config_yaml)), 'green'))
@@ -145,6 +172,8 @@ input_only = [
     "mul-element", "guas-noise", "lap-noise", "dropout", "cdropout"
 ]
 
+# 数据集导入
+# ✅ db_synthetic
 db_synthetic_lst = []
 if config.train.datasetsTrain is not None:
     for dataset in config.train.datasetsTrain:
@@ -157,6 +186,7 @@ if config.train.datasetsTrain is not None:
     db_synthetic = torch.utils.data.ConcatDataset(db_synthetic_lst)
 
 #Note: If multiple folders for matterport/scannet are passed, only the last one will be taken in.
+# ❌
 if config.train.datasetsMatterportTrain is not None:
     for dataset in config.train.datasetsMatterportTrain:
         if dataset.images:
@@ -165,7 +195,7 @@ if config.train.datasetsMatterportTrain is not None:
                                                                         transform=augs_train,
                                                                         input_only=input_only)
             print('Num of Matterport imgs:', len(db_matterport))
-
+# ❌
 if config.train.datasetsScannetTrain is not None:
     for dataset in config.train.datasetsScannetTrain:
         if dataset.images:
@@ -183,6 +213,7 @@ augs_test = iaa.Sequential([
     }, interpolation='nearest'),
 ])
 
+# ✅ db_val
 db_val_list = []
 if config.train.datasetsVal is not None:
     for dataset in config.train.datasetsVal:
@@ -195,6 +226,7 @@ if config.train.datasetsVal is not None:
             db = torch.utils.data.Subset(db, range(train_size))
             db_val_list.append(db)
 
+# ❌
 if config.train.datasetsMatterportVal is not None:
     for dataset in config.train.datasetsMatterportVal:
         if dataset.images:
@@ -206,6 +238,7 @@ if config.train.datasetsMatterportVal is not None:
             db = torch.utils.data.Subset(db, range(train_size))
             db_val_list.append(db)
 
+# ❌
 if config.train.datasetsScannetVal is not None:
     for dataset in config.train.datasetsScannetVal:
         if dataset.images:
@@ -221,6 +254,7 @@ if db_val_list:
     db_val = torch.utils.data.ConcatDataset(db_val_list)
 
 # Test Dataset - Real
+# ✅ db_test
 db_test_list = []
 if config.train.datasetsTestReal is not None:
     for dataset in config.train.datasetsTestReal:
@@ -236,6 +270,7 @@ if config.train.datasetsTestReal is not None:
         db_test = torch.utils.data.ConcatDataset(db_test_list)
 
 # Test Dataset - Synthetic
+# ✅ db_test_synthetic
 db_test_synthetic_list = []
 if config.train.datasetsTestSynthetic is not None:
     for dataset in config.train.datasetsTestSynthetic:
@@ -448,14 +483,16 @@ for epoch in range(START_EPOCH, END_EPOCH):
 
     # split scannet and matterport dataset for  random selection of data
     db_train_list = []
+    # ✅
     if config.train.datasetsTrain is not None:
         if config.train.datasetsTrain[0].images:
             train_size_synthetic = int(config.train.percentageDataForTraining * len(db_synthetic))
             db, _ = torch.utils.data.random_split(db_synthetic,
                                                   (train_size_synthetic, len(db_synthetic) - train_size_synthetic))
             db_train_list.append(db)
-
+    # 训练数据集 db_train_list
     if config.train.batchSizeMatterport == 0 and config.train.batchSizeScannet == 0:
+        # ❌
         if config.train.datasetsMatterportTrain is not None:
             if config.train.datasetsMatterportTrain[0].images:
                 train_size_matterport = int(config.train.percentageDataForMatterportTraining * len(db_matterport))
@@ -463,6 +500,7 @@ for epoch in range(START_EPOCH, END_EPOCH):
                     db_matterport, (train_size_matterport, len(db_matterport) - train_size_matterport))
                 db_train_list.append(db)
 
+        # ❌
         if config.train.datasetsScannetTrain is not None:
             if config.train.datasetsScannetTrain[0].images:
                 train_size_scannet = int(config.train.percentageDataForScannetTraining * len(db_scannet))
@@ -471,6 +509,7 @@ for epoch in range(START_EPOCH, END_EPOCH):
                 db_train_list.append(db)
     else:
         # Create separate loaders for matterport and scannet. Will call them and add to batch manually.
+        # ❌
         if config.train.datasetsMatterportTrain is not None:
             trainLoaderMatterport = DataLoader(db_matterport,
                                                batch_size=config.train.batchSizeMatterport,
@@ -480,6 +519,7 @@ for epoch in range(START_EPOCH, END_EPOCH):
                                                pin_memory=True)
             loaderMatterport = iter(trainLoaderMatterport)
 
+        # ❌
         if config.train.datasetsScannetTrain is not None:
             trainLoaderScannet = DataLoader(db_scannet,
                                             batch_size=config.train.batchSizeScannet,
@@ -523,7 +563,12 @@ for epoch in range(START_EPOCH, END_EPOCH):
             labels_resized = resize_tensor(labels, int(labels.shape[2] / 2), int(labels.shape[3] / 2))
             labels_resized = labels_resized.to(device)
 
-        inputs = inputs.to(device)
+        inputs = inputs.to(device) # (batch_size, 3, 512, 512)
+        print(inputs.shape)
+        inputs_relative_depth = da_model.infer_image(inputs).to(device)
+        print(inputs_relative_depth.shape)
+        inputs_relative_depth = inputs_relative_depth.unsqueeze(1)
+        inputs = torch.cat((inputs, inputs_relative_depth),dim=1)
         labels = labels.to(device)
 
         # Get Model Graph
