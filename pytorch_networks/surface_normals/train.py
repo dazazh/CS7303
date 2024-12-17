@@ -284,6 +284,7 @@ if config.train.datasetsTestSynthetic is not None:
         db_test_synthetic = torch.utils.data.ConcatDataset(db_test_synthetic_list)
 
 # Create dataloaders
+# ✅
 if db_val_list:
     assert (config.train.validationBatchSize <= len(db_val)), \
         ('validationBatchSize ({}) cannot be more than the ' +
@@ -294,6 +295,7 @@ if db_val_list:
                                   shuffle=True,
                                   num_workers=config.train.numWorkers,
                                   drop_last=False)
+# ✅
 if db_test_list:
     assert (config.train.testBatchSize <= len(db_test)), \
         ('testBatchSize ({}) cannot be more than the ' +
@@ -304,6 +306,7 @@ if db_test_list:
                             shuffle=False,
                             num_workers=config.train.numWorkers,
                             drop_last=True)
+# ✅
 if db_test_synthetic_list:
     assert (config.train.testBatchSize <= len(db_test_synthetic)), \
         ('testBatchSize ({}) cannot be more than the ' +
@@ -335,6 +338,7 @@ if config.train.model == 'deeplab_xception':
 elif config.train.model == 'deeplab_resnet':
     model = deeplab.DeepLab(num_classes=config.train.numClasses, backbone='resnet', sync_bn=True,
                             freeze_bn=False)
+# ✅    
 elif config.train.model == 'drn':
     model = deeplab.DeepLab(num_classes=config.train.numClasses, backbone='drn', sync_bn=True,
                             freeze_bn=False)  # output stride is 8 for drn
@@ -529,6 +533,7 @@ for epoch in range(START_EPOCH, END_EPOCH):
                                             pin_memory=True)
             loaderScannet = iter(trainLoaderScannet)
 
+    # db_train 在当前配置下只包含了 synthetic 数据
     db_train = torch.utils.data.ConcatDataset(db_train_list)
     trainLoader = DataLoader(db_train,
                              batch_size=config.train.batchSize,
@@ -562,13 +567,17 @@ for epoch in range(START_EPOCH, END_EPOCH):
         if config.train.model == 'densenet':
             labels_resized = resize_tensor(labels, int(labels.shape[2] / 2), int(labels.shape[3] / 2))
             labels_resized = labels_resized.to(device)
-
+        
+        # depth anything 预测batch图像的深度图并添加到输入
         inputs = inputs.to(device) # (batch_size, 3, 512, 512)
         print(inputs.shape)
-        inputs_relative_depth = da_model.infer_image(inputs).to(device)
-        print(inputs_relative_depth.shape)
+        inputs_list_form = [inputs[i].permute(1, 2, 0).cpu().numpy() for i in range(inputs.shape[0])]
+        inputs_relative_depth = da_model.infer_images(inputs_list_form)
+        inputs_relative_depth = torch.stack([torch.from_numpy(depth) for depth in inputs_relative_depth]).to(device)
+        print("当前batch相对深度图的形状为:",inputs_relative_depth.shape)
         inputs_relative_depth = inputs_relative_depth.unsqueeze(1)
-        inputs = torch.cat((inputs, inputs_relative_depth),dim=1)
+        inputs = torch.cat((inputs, inputs_relative_depth),dim=1).to(device)
+        print("当前batch输入的形状为:",inputs.shape)
         labels = labels.to(device)
 
         # Get Model Graph
@@ -621,8 +630,9 @@ for epoch in range(START_EPOCH, END_EPOCH):
             else:
                 output = normal_vectors_norm
 
-            grid_image = utils.create_grid_image(inputs, output.float(), labels, max_num_images_to_save=16)
-            writer.add_image('Train', grid_image, total_iter_num)
+            # 特别注意，这里会有报错，但暂时不需要log数据，先不调了
+            # grid_image = utils.create_grid_image(inputs, output.float(), labels, max_num_images_to_save=16)
+            # writer.add_image('Train', grid_image, total_iter_num)
 
     # Log Epoch Loss
     num_samples = (len(trainLoader))

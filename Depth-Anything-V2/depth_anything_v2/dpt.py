@@ -172,7 +172,13 @@ class DepthAnythingV2(nn.Module):
         self.pretrained = DINOv2(model_name=encoder)
         
         self.depth_head = DPTHead(self.pretrained.embed_dim, features, use_bn, out_channels=out_channels, use_clstoken=use_clstoken)
-    
+
+    @torch.no_grad()
+    def infer_images(self, raw_images, input_size=518):
+        depths = []
+        for raw_image in raw_images:
+            depths.append(self.infer_image(raw_image, input_size))
+        return depths
     def forward(self, x):
         patch_h, patch_w = x.shape[-2] // 14, x.shape[-1] // 14
         

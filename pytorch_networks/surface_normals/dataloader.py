@@ -42,13 +42,15 @@ class SurfaceNormalsDataset(Dataset):
             mask_dir='',
             transform=None,
             input_only=None,
+            project_dir='/data2/yuhao/class/CS7303/'
     ):
 
         super().__init__()
 
-        self.images_dir = input_dir
-        self.labels_dir = label_dir
-        self.masks_dir = mask_dir
+        self.project_dir = project_dir
+        self.images_dir = os.path.join(project_dir, input_dir)
+        self.labels_dir = os.path.join(project_dir, label_dir)
+        self.masks_dir = os.path.join(project_dir, mask_dir)
         self.transform = transform
         self.input_only = input_only
 
@@ -86,7 +88,7 @@ class SurfaceNormalsDataset(Dataset):
             label_path = self._datalist_label[index]
             _label = exr_loader(label_path, ndim=3)  # (3, H, W)
 
-        if self.masks_dir:
+        if self.masks_dir is not self.project_dir:
             mask_path = self._datalist_mask[index]
             _mask = imageio.imread(mask_path)
 
@@ -105,7 +107,7 @@ class SurfaceNormalsDataset(Dataset):
                 _label = det_tf.augment_image(_label, hooks=ia.HooksImages(activator=self._activator_masks))
                 _label = _label.transpose((2, 0, 1))  # To Shape: (3, H, W)
 
-            if self.masks_dir:
+            if self.masks_dir is not self.project_dir:
                 _mask = det_tf.augment_image(_mask, hooks=ia.HooksImages(activator=self._activator_masks))
 
         # Return Tensors
@@ -117,7 +119,7 @@ class SurfaceNormalsDataset(Dataset):
         else:
             _label_tensor = torch.zeros((3, _img_tensor.shape[1], _img_tensor.shape[2]), dtype=torch.float32)
 
-        if self.masks_dir:
+        if self.masks_dir is not self.project_dir:
             _mask = _mask[..., np.newaxis]
             _mask_tensor = transforms.ToTensor()(_mask)
         else:
@@ -150,7 +152,7 @@ class SurfaceNormalsDataset(Dataset):
         if numImages == 0:
             raise ValueError('No images found in given directory. Searched in dir: {} '.format(images_dir))
 
-        if labels_dir:
+        if labels_dir is not self.project_dir:
             assert os.path.isdir(labels_dir), ('Dataloader given labels directory that does not exist: "%s"' %
                                                (labels_dir))
             for ext in self._extension_label:
@@ -165,7 +167,7 @@ class SurfaceNormalsDataset(Dataset):
                 raise ValueError('The number of images and labels do not match. Please check data,' +
                                  'found {} images and {} labels in dirs:\n'.format(numImages, numLabels) +
                                  'images: {}\nlabels: {}\n'.format(images_dir, labels_dir))
-        if masks_dir:
+        if masks_dir is not self.project_dir:
             assert os.path.isdir(masks_dir), ('Dataloader given masks directory that does not exist: "%s"' %
                                                (masks_dir))
             for ext in self._extension_mask:

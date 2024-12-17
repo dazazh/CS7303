@@ -110,6 +110,8 @@ class DRN(nn.Module):
         self.arch = arch
 
         if arch == 'C':
+            # self.conv1 = nn.Conv2d(3, channels[0], kernel_size=7, stride=1,
+            #                        padding=3, bias=False)
             self.conv1 = nn.Conv2d(3, channels[0], kernel_size=7, stride=1,
                                    padding=3, bias=False)
             self.bn1 = BatchNorm(channels[0])
@@ -121,8 +123,14 @@ class DRN(nn.Module):
                 BasicBlock, channels[1], layers[1], stride=2, BatchNorm=BatchNorm)
 
         elif arch == 'D':
+            # self.layer0 = nn.Sequential(
+            #     nn.Conv2d(3, channels[0], kernel_size=7, stride=1, padding=3,
+            #               bias=False),
+            #     BatchNorm(channels[0]),
+            #     nn.ReLU(inplace=True)
+            # )
             self.layer0 = nn.Sequential(
-                nn.Conv2d(3, channels[0], kernel_size=7, stride=1, padding=3,
+                nn.Conv2d(4, channels[0], kernel_size=7, stride=1, padding=3,
                           bias=False),
                 BatchNorm(channels[0]),
                 nn.ReLU(inplace=True)
@@ -240,8 +248,10 @@ class DRN_A(nn.Module):
         self.inplanes = 64
         super(DRN_A, self).__init__()
         self.out_dim = 512 * block.expansion
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
+        # self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        #                        bias=False)
+        self.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
+                        bias=False)
         self.bn1 = BatchNorm(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)

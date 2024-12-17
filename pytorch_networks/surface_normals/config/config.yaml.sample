@@ -30,11 +30,11 @@ train:
 
   # Real Images (no ground truth labels)
   datasetsTestReal:
-      - images: 'data/datasets/real-test/d415/'
+      - images: 'data/cleargrasp-dataset-test-val/real-test/d415/'
         labels: ''
-      - images: 'data/datasets/real-test/d435/'
+      - images: 'data/cleargrasp-dataset-test-val/real-test/d435/'
         labels: ''
-      - images: 'data/datasets/real-val/d435/'
+      - images: 'data/cleargrasp-dataset-test-val/real-val/d435/'
         labels: ''
 
   # Synthetic datasets with ground truth labels - Used as test set
