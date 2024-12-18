@@ -6,6 +6,7 @@ data/*
 !data/sample_dataset
 !data/.gitkeep
 /pytorch_networks/surface_normals/logs-deeplab/*
+/Depth-Anything-V2/wandb/*
 
 .vscode/
 *.pyc
