@@ -5,6 +5,7 @@ data/*
 !data/readme_images
 !data/sample_dataset
 !data/.gitkeep
+/pytorch_networks/surface_normals/logs-deeplab/*
 
 .vscode/
 *.pyc

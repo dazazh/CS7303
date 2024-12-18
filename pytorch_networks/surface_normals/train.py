@@ -31,30 +31,30 @@ import loss_functions
 from modeling import deeplab
 from utils import utils
 
-# 获取当前脚本的绝对路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# 获取 Depth-Anything-V2 的绝对路径（从 train.py 开始定位）
-depth_anything_path = os.path.join(current_dir, '..', '..', 'Depth-Anything-V2')
-# 将路径加入 sys.path
-sys.path.append(depth_anything_path)
+# # 获取当前脚本的绝对路径
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# # 获取 Depth-Anything-V2 的绝对路径（从 train.py 开始定位）
+# depth_anything_path = os.path.join(current_dir, '..', '..', 'Depth-Anything-V2')
+# # 将路径加入 sys.path
+# sys.path.append(depth_anything_path)
 
-from depth_anything_v2.dpt import DepthAnythingV2
+# from depth_anything_v2.dpt import DepthAnythingV2
 
 # depth anything model setup
 DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
 
-model_configs = {
-    'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]},
-    'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
-    'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
-    'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
-}
+# model_configs = {
+#     'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]},
+#     'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
+#     'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
+#     'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
+# }
 
-encoder = 'vitl' # or 'vits', 'vitb', 'vitg'
+# encoder = 'vitl' # or 'vits', 'vitb', 'vitg'
 
-da_model = DepthAnythingV2(**model_configs[encoder])
-da_model.load_state_dict(torch.load(f'/data2/yuhao/class/CS7303/pytorch_networks/surface_normals/checkpoints/depth_anything_v2_vitl.pth', map_location='cpu'))
-da_model = da_model.to(DEVICE).eval()
+# da_model = DepthAnythingV2(**model_configs[encoder])
+# da_model.load_state_dict(torch.load(f'/data2/yuhao/class/CS7303/pytorch_networks/surface_normals/checkpoints/depth_anything_v2_vitl.pth', map_location='cpu'))
+# da_model = da_model.to(DEVICE).eval()
 
 ###################### Load Config File #############################
 parser = argparse.ArgumentParser(description='Run training of outlines prediction model')
@@ -570,13 +570,14 @@ for epoch in range(START_EPOCH, END_EPOCH):
         
         # depth anything 预测batch图像的深度图并添加到输入
         inputs = inputs.to(device) # (batch_size, 3, 512, 512)
-        print(inputs.shape)
-        inputs_list_form = [inputs[i].permute(1, 2, 0).cpu().numpy() for i in range(inputs.shape[0])]
-        inputs_relative_depth = da_model.infer_images(inputs_list_form)
-        inputs_relative_depth = torch.stack([torch.from_numpy(depth) for depth in inputs_relative_depth]).to(device)
-        print("当前batch相对深度图的形状为:",inputs_relative_depth.shape)
-        inputs_relative_depth = inputs_relative_depth.unsqueeze(1)
-        inputs = torch.cat((inputs, inputs_relative_depth),dim=1).to(device)
+        # 已经把深度图嵌入到了dataloader中，此步注释
+        # # print(inputs.shape)
+        # inputs_list_form = [inputs[i].permute(1, 2, 0).cpu().numpy() for i in range(inputs.shape[0])]
+        # inputs_relative_depth = da_model.infer_images(inputs_list_form)
+        # inputs_relative_depth = torch.stack([torch.from_numpy(depth) for depth in inputs_relative_depth]).to(device)
+        # # print("当前batch相对深度图的形状为:",inputs_relative_depth.shape)
+        # inputs_relative_depth = inputs_relative_depth.unsqueeze(1)
+        # inputs = torch.cat((inputs, inputs_relative_depth),dim=1).to(device)
         print("当前batch输入的形状为:",inputs.shape)
         labels = labels.to(device)
 

@@ -8,6 +8,8 @@ import numpy as np
 from tqdm import tqdm
 from depth_anything_v2.dpt import DepthAnythingV2
 
+torch.cuda.empty_cache()
+
 device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
 
 model_configs = {

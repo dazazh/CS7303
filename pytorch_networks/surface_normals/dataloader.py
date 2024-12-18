@@ -56,6 +56,7 @@ class SurfaceNormalsDataset(Dataset):
 
         # Create list of filenames
         self._datalist_input = []  # Variable containing list of all input images filenames in dataset
+        self._depthlist_input = []
         self._datalist_label = []
         self._datalist_mask = []
         self._extension_input = ['-transparent-rgb-img.jpg', '-rgb.jpg', '-input-img.jpg']  # The file extension of input images
@@ -80,6 +81,9 @@ class SurfaceNormalsDataset(Dataset):
 
         # Open input imgs
         image_path = self._datalist_input[index]
+        depth_path = self._depthlist_input[index]
+        _depth = Image.open(depth_path).convert('L')
+        _depth = np.array(_depth)
         _img = Image.open(image_path).convert('RGB')
         _img = np.array(_img)
 
@@ -97,6 +101,7 @@ class SurfaceNormalsDataset(Dataset):
             det_tf = self.transform.to_deterministic()
 
             _img = det_tf.augment_image(_img)
+            _depth = det_tf.augment_image(_depth)
             if self.labels_dir:
                 # Making all values of invalid pixels marked as -1.0 to 0.
                 # In raw data, invalid pixels are marked as (-1, -1, -1) so that on conversion to RGB they appear black.
@@ -112,6 +117,7 @@ class SurfaceNormalsDataset(Dataset):
 
         # Return Tensors
         _img_tensor = transforms.ToTensor()(_img)
+        _depth_tensor = transforms.ToTensor()(_depth)
 
         if self.labels_dir:
             _label_tensor = torch.from_numpy(_label)
@@ -124,8 +130,10 @@ class SurfaceNormalsDataset(Dataset):
             _mask_tensor = transforms.ToTensor()(_mask)
         else:
             _mask_tensor = torch.ones((1, _img_tensor.shape[1], _img_tensor.shape[2]), dtype=torch.float32)
+        
+        _img_tensor = torch.concatenate((_img_tensor, _depth_tensor), dim=0)
 
-        return _img_tensor, _label_tensor, _mask_tensor
+        return _img_tensor , _label_tensor, _mask_tensor
 
     def _create_lists_filenames(self, images_dir, labels_dir, masks_dir):
         '''Creates a list of filenames of images and labels each in dataset
@@ -145,7 +153,11 @@ class SurfaceNormalsDataset(Dataset):
         assert os.path.isdir(images_dir), 'Dataloader given images directory that does not exist: "%s"' % (images_dir)
         for ext in self._extension_input:
             imageSearchStr = os.path.join(images_dir, '*' + ext)
+            # 添加深度图像
+            depthSearchStr = os.path.join(images_dir, '*' + "-relative-depth.jpg")
             imagepaths = sorted(glob.glob(imageSearchStr))
+            depthpaths = sorted(glob.glob(depthSearchStr))
+            self._depthlist_input = self._depthlist_input + depthpaths
             self._datalist_input = self._datalist_input + imagepaths
 
         numImages = len(self._datalist_input)
