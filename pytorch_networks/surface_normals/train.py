@@ -181,6 +181,7 @@ if config.train.datasetsTrain is not None:
             db_synthetic = dataloader.SurfaceNormalsDataset(input_dir=dataset.images,
                                                             label_dir=dataset.labels,
                                                             transform=augs_train,
+                                                            transform_depth=augs_train,
                                                             input_only=input_only)
             db_synthetic_lst.append(db_synthetic)
     db_synthetic = torch.utils.data.ConcatDataset(db_synthetic_lst)
@@ -193,6 +194,7 @@ if config.train.datasetsMatterportTrain is not None:
             db_matterport = dataloader_matterport.SurfaceNormalsDataset(input_dir=dataset.images,
                                                                         label_dir=dataset.labels,
                                                                         transform=augs_train,
+                                                                        transform_depth=augs_train,
                                                                         input_only=input_only)
             print('Num of Matterport imgs:', len(db_matterport))
 # ❌
@@ -202,6 +204,7 @@ if config.train.datasetsScannetTrain is not None:
             db_scannet = dataloader_scannet.SurfaceNormalsDataset(input_dir=dataset.images,
                                                                   label_dir=dataset.labels,
                                                                   transform=augs_train,
+                                                                  transform_depth=augs_train,
                                                                   input_only=input_only)
             print('Num of ScanNet imgs:', len(db_scannet))
 
@@ -221,6 +224,7 @@ if config.train.datasetsVal is not None:
             db = dataloader.SurfaceNormalsDataset(input_dir=dataset.images,
                                                   label_dir=dataset.labels,
                                                   transform=augs_test,
+                                                  transform_depth=augs_test,
                                                   input_only=None)
             train_size = int(config.train.percentageDataForValidation * len(db))
             db = torch.utils.data.Subset(db, range(train_size))
@@ -233,6 +237,7 @@ if config.train.datasetsMatterportVal is not None:
             db = dataloader_matterport.SurfaceNormalsDataset(input_dir=dataset.images,
                                                              label_dir=dataset.labels,
                                                              transform=augs_test,
+                                                             transform_depth=augs_test,
                                                              input_only=None)
             train_size = int(config.train.percentageDataForMatterportVal * len(db))
             db = torch.utils.data.Subset(db, range(train_size))
@@ -245,6 +250,7 @@ if config.train.datasetsScannetVal is not None:
             db = dataloader_scannet.SurfaceNormalsDataset(input_dir=dataset.images,
                                                           label_dir=dataset.labels,
                                                           transform=augs_test,
+                                                          transform_depth=augs_test,
                                                           input_only=None)
             train_size = int(config.train.percentageDataForScannettVal * len(db))
             db = torch.utils.data.Subset(db, range(train_size))
@@ -264,6 +270,7 @@ if config.train.datasetsTestReal is not None:
                                                   label_dir=dataset.labels,
                                                   mask_dir=mask_dir,
                                                   transform=augs_test,
+                                                  transform_depth=augs_test,
                                                   input_only=None)
             db_test_list.append(db)
     if db_test_list:
@@ -278,6 +285,7 @@ if config.train.datasetsTestSynthetic is not None:
             db = dataloader.SurfaceNormalsDataset(input_dir=dataset.images,
                                                   label_dir=dataset.labels,
                                                   transform=augs_test,
+                                                  transform_depth=augs_test,
                                                   input_only=None)
             db_test_synthetic_list.append(db)
     if db_test_synthetic_list:
@@ -578,7 +586,7 @@ for epoch in range(START_EPOCH, END_EPOCH):
         # # print("当前batch相对深度图的形状为:",inputs_relative_depth.shape)
         # inputs_relative_depth = inputs_relative_depth.unsqueeze(1)
         # inputs = torch.cat((inputs, inputs_relative_depth),dim=1).to(device)
-        print("当前batch输入的形状为:",inputs.shape)
+        # print("当前batch输入的形状为:",inputs.shape)
         labels = labels.to(device)
 
         # Get Model Graph

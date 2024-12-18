@@ -41,6 +41,7 @@ class SurfaceNormalsDataset(Dataset):
             label_dir='',
             mask_dir='',
             transform=None,
+            transform_depth=None,
             input_only=None,
             project_dir='/data2/yuhao/class/CS7303/'
     ):
@@ -52,6 +53,7 @@ class SurfaceNormalsDataset(Dataset):
         self.labels_dir = os.path.join(project_dir, label_dir)
         self.masks_dir = os.path.join(project_dir, mask_dir)
         self.transform = transform
+        self.transform_depth = transform_depth
         self.input_only = input_only
 
         # Create list of filenames
@@ -63,6 +65,12 @@ class SurfaceNormalsDataset(Dataset):
         self._extension_label = ['-cameraNormals.exr', '-normals.exr']
         self._extension_mask = ['-mask.png']
         self._create_lists_filenames(self.images_dir, self.labels_dir, self.masks_dir)
+
+        self.default_img = os.path.join(project_dir, 'data/cleargrasp-dataset-train/heart-bath-bomb-train/rgb-imgs/000000000-rgb.jpg')
+        self.default_depth = os.path.join(project_dir, 'data/cleargrasp-dataset-train/heart-bath-bomb-train/rgb-imgs/000000000-rgb-relative-depth.jpg')
+        self.default_mask = os.path.join(project_dir, 'data/cleargrasp-dataset-train/heart-bath-bomb-train/segmentation-masks/000000000-segmentation-mask.png')
+        self.default_normals = os.path.join(project_dir, 'data/cleargrasp-dataset-train/heart-bath-bomb-train/camera-normals/000000000-cameraNormals.exr')
+        # print("默认：",self.default_depth)
 
     def __len__(self):
         return len(self._datalist_input)
@@ -82,27 +90,47 @@ class SurfaceNormalsDataset(Dataset):
         # Open input imgs
         image_path = self._datalist_input[index]
         depth_path = self._depthlist_input[index]
-        _depth = Image.open(depth_path).convert('L')
-        _depth = np.array(_depth)
-        _img = Image.open(image_path).convert('RGB')
-        _img = np.array(_img)
+        
+        # 有些图没法正常读取，清洗数据集
+        try:
+            _depth = Image.open(depth_path)
+            _depth = np.array(_depth)
+            
+            _img = Image.open(image_path).convert('RGB')
+            _img = np.array(_img)
 
-        # Open labels
-        if self.labels_dir:
-            label_path = self._datalist_label[index]
-            _label = exr_loader(label_path, ndim=3)  # (3, H, W)
+            # Open labels
+            if self.labels_dir is not self.project_dir:
+                label_path = self._datalist_label[index]
+                _label = exr_loader(label_path, ndim=3)  # (3, H, W)
 
-        if self.masks_dir is not self.project_dir:
-            mask_path = self._datalist_mask[index]
-            _mask = imageio.imread(mask_path)
+            if self.masks_dir is not self.project_dir:
+                mask_path = self._datalist_mask[index]
+                _mask = imageio.imread(mask_path)
+        except:
+            _depth = Image.open(self.default_depth)
+            _depth = np.array(_depth)
+            
+            _img = Image.open(self.default_img).convert('RGB')
+            _img = np.array(_img)
+
+            # Open labels
+            if self.labels_dir is not self.project_dir:
+                label_path = self.default_normals
+                _label = exr_loader(label_path, ndim=3)  # (3, H, W)
+
+            if self.masks_dir is not self.project_dir:
+                mask_path = self.default_mask
+                _mask = imageio.imread(mask_path)
 
         # Apply image augmentations and convert to Tensor
         if self.transform:
             det_tf = self.transform.to_deterministic()
-
+            det_tf_depth = self.transform_depth.to_deterministic()
             _img = det_tf.augment_image(_img)
-            _depth = det_tf.augment_image(_depth)
-            if self.labels_dir:
+            _depth = det_tf_depth.augment_image(_depth)
+            _depth = _depth
+            if self.labels_dir is not self.project_dir:
                 # Making all values of invalid pixels marked as -1.0 to 0.
                 # In raw data, invalid pixels are marked as (-1, -1, -1) so that on conversion to RGB they appear black.
                 mask = np.all(_label == -1.0, axis=0)
@@ -114,12 +142,12 @@ class SurfaceNormalsDataset(Dataset):
 
             if self.masks_dir is not self.project_dir:
                 _mask = det_tf.augment_image(_mask, hooks=ia.HooksImages(activator=self._activator_masks))
-
+        _depth = _depth[:,:,0]
         # Return Tensors
         _img_tensor = transforms.ToTensor()(_img)
         _depth_tensor = transforms.ToTensor()(_depth)
 
-        if self.labels_dir:
+        if self.labels_dir is not self.project_dir:
             _label_tensor = torch.from_numpy(_label)
             _label_tensor = nn.functional.normalize(_label_tensor, p=2, dim=0)
         else:
@@ -133,7 +161,7 @@ class SurfaceNormalsDataset(Dataset):
         
         _img_tensor = torch.concatenate((_img_tensor, _depth_tensor), dim=0)
 
-        return _img_tensor , _label_tensor, _mask_tensor
+        return _img_tensor, _label_tensor, _mask_tensor
 
     def _create_lists_filenames(self, images_dir, labels_dir, masks_dir):
         '''Creates a list of filenames of images and labels each in dataset
