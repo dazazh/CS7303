@@ -27,7 +27,7 @@ sudo apt install libglfw3-dev
 1. Clone the repository. A small sample dataset of 3 real and 3 synthetic images is included.
 
    ```bash
-   git clone git@github.com:Shreeyak/cleargrasp.git
+   git clone <current-branch>
    ```
 
 2. Install pip dependencies by running in terminal:
