@@ -84,38 +84,7 @@ sudo apt install libglfw3-dev
 
 ## To run the code:
 
-
-
-### 1. ClearGrasp Quick Demo - Evaluation of Depth Completion of Transparent Objects
-
-原项目自带的evaluation模块，是对整个深度预测的evaluation，而surface_normal的eval在`/pytorch_networks/surface_normals/eval.py`，需要等Train结果出来再调。
-
-We provide a script to run our full pipeline on a dataset and calculate accuracy metrics (**RMSE, MAE, etc**). Resides in the directory `eval_depth_completion/`.  **对应论文的测试指标，看描述他有直接的实现**
-
-- Install dependencies and follow [Setup](#setup) to download our model checkpoints and compile `depth2depth`.
-
-- Create a local copy of the config file:
-
-  新建配置文件，原来那个是个样本文件，每次需要新的配置的时候复制原来的样本修改即可
-
-  ```bash
-  cd eval_depth_completion/
-  cp config/config.yaml.sample config/config.yaml
-  ```
-
-- Edit the `config/config.yaml` file to set `pathWeightsFile` parameters to the paths of the respective model checkpoints. To run evaluation on the different datasets, set the path(s) to their director(ies) within the `files` parameter.
-
-  设置checkpoint路径
-
-- Run ClearGrasp on the sample dataset:
-
-  ```bash
-  python eval_depth_completion.py -c config/config.yaml
-  ```
-
-  
-
-### 2. Training Code
+### Training Code
 
 The folder `pytorch_networks/` contains the code used to train the
 surface normals, occlusion boundary and semantic segmentation models.
