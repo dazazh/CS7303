@@ -1,4 +1,4 @@
-# ClearGrasp: 3D Shape Estimation of Transparent Objects for Manipulation
+# FDE: Full-scene Depth Estimation including transparent objects
 
 
 
