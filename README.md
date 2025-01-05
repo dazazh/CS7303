@@ -6,11 +6,9 @@
 
 This code is tested with Ubuntu 16.04, Python3.6 and [Pytorch](https://pytorch.org/get-started/locally/) 1.3, and CUDA 9.0.  
 
-学校服务器的配置能用，python3.8实测也能用
 
 ### System Dependencies
 
-需要sudo权限，联系师兄在服务器上装一下，具体方法如下
 
 ```bash
 sudo apt-get install libhdf5-10 libhdf5-serial-dev libhdf5-dev libhdf5-cpp-11
@@ -37,11 +35,11 @@ sudo apt install libglfw3-dev
    ```
 
 3. Download the data:  
-   a) 数据集：zzy上传到服务器，存储路径：
+   a) 数据集存储路径：
 
    <img src="/data/readme_images/data_path.png" style="zoom:50%;" />
 
-   b)  [Model Checkpoints](https://storage.googleapis.com/cleargrasp/cleargrasp-checkpoints.zip) (0.9GB) - (包含了masks、boundary和surface normal原模型，前两个我们可以直接用) checkpoints位置在三个模型文件夹下的config目录中设置
+   b)  [Model Checkpoints](https://storage.googleapis.com/cleargrasp/cleargrasp-checkpoints.zip) (0.9GB) - (包含了masks、boundary和surface normal原模型) checkpoints位置在三个模型文件夹下的config目录中设置
 
    <img src="/data/readme_images/model.png" style="zoom:50%;" />
 
@@ -141,12 +139,3 @@ surface normals, occlusion boundary and semantic segmentation models.
   ```bash
   python eval.py -c config/config.yaml
   ```
-
-
-
-### 3. 可能会报的错误
-
-- 路径问题，修改`surface_normal/dataloader.py`为个人路径
-- 显存/显卡问题，修改device为空闲设备`cuda:0,1,2...`
-- 训练validation阶段报错，联系我
-- 可能会有一个numpy版本的错，问下gpt改一下，没记错的话是`bool->bool_`
